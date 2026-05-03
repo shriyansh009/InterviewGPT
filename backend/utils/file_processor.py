@@ -1,7 +1,7 @@
 import os
 import shutil
 from pathlib import Path
-from PyPDF2 import PdfReader
+from pypdf import PdfReader
 from docx import Document
 from config import get_settings
 

@@ -46,7 +46,8 @@ class Analysis(Base):
     resume_id = Column(Integer, ForeignKey("resumes.id"), nullable=False)
     job_description = Column(Text, nullable=False)
     ats_score = Column(Float)
-    missing_skills = Column(Text)  # JSON stored as text
+    missing_skills = Column(Text) 
+    matching_skills = Column(Text, default="[]") # JSON stored as text
     suggestions = Column(Text)  # JSON stored as text
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

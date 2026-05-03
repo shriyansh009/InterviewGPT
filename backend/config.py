@@ -4,7 +4,7 @@ from functools import lru_cache
 
 class Settings(BaseSettings):
     # Database
-    DATABASE_URL: str = "postgresql://user:password@localhost:5432/interviewgpt"
+    DATABASE_URL: str = "postgresql://user:Shriyansh%4026@localhost:5432/interviewgpt"
     
     # API Keys
     GEMINI_API_KEY: str = ""

@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas import ChatMessage, ChatHistoryResponse
@@ -15,7 +15,7 @@ embedding_service = EmbeddingService()
 rag_service = RAGService(embedding_service)
 
 
-def get_current_user(token: str, db: Session = Depends(get_db)) -> User:
+def get_current_user(token: str = Query(None), db: Session = Depends(get_db)) -> User:
     """Get current user from token"""
     payload = decode_token(token)
     if not payload:
@@ -40,7 +40,7 @@ def get_current_user(token: str, db: Session = Depends(get_db)) -> User:
 def send_message(
     message: ChatMessage,
     analysis_id: int = None,
-    token: str = None,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
     """Send chat message and get AI response"""

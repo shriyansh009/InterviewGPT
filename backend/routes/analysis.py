@@ -1,5 +1,5 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status, Query
 from sqlalchemy.orm import Session
 from database import get_db
 from schemas import ResumeResponse, AnalysisRequest, AnalysisResponse, InterviewQuestionResponse
@@ -16,7 +16,7 @@ embedding_service = EmbeddingService()
 rag_service = RAGService(embedding_service)
 
 
-def get_current_user(token: str, db: Session = Depends(get_db)) -> User:
+def get_current_user(token: str = Query(None), db: Session = Depends(get_db)) -> User:
     """Get current user from token"""
     payload = decode_token(token)
     if not payload:
@@ -40,7 +40,7 @@ def get_current_user(token: str, db: Session = Depends(get_db)) -> User:
 @router.post("/upload-resume", response_model=ResumeResponse)
 async def upload_resume(
     file: UploadFile = File(...),
-    token: str = None,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
     """Upload resume file"""
@@ -88,52 +88,41 @@ async def upload_resume(
 @router.post("/analyze", response_model=AnalysisResponse)
 def analyze_resume(
     request: AnalysisRequest,
-    token: str = None,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
-    """Analyze resume against job description"""
-    
     user = get_current_user(token, db)
-    
-    # Verify resume belongs to user
+
     resume = db.query(Resume).filter(
         Resume.id == request.resume_id,
         Resume.user_id == user.id
     ).first()
-    
+
     if not resume:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Resume not found"
-        )
-    
-    # Generate ATS score and analysis
-    analysis_result = rag_service.generate_ats_score(
-        resume.raw_text,
-        request.job_description
-    )
-    
-    # Save analysis to database
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
+
+    analysis_result = rag_service.generate_ats_score(resume.raw_text, request.job_description)
+
     db_analysis = Analysis(
         user_id=user.id,
         resume_id=resume.id,
         job_description=request.job_description,
         ats_score=analysis_result.get("ats_score"),
         missing_skills=json.dumps(analysis_result.get("missing_skills", [])),
+        matching_skills=json.dumps(analysis_result.get("matching_skills", [])),  # ← was missing
         suggestions=json.dumps(analysis_result.get("suggestions", []))
     )
-    
+
     db.add(db_analysis)
     db.commit()
     db.refresh(db_analysis)
-    
-    return db_analysis
 
+    return db_analysis
 
 @router.get("/analysis/{analysis_id}", response_model=AnalysisResponse)
 def get_analysis(
     analysis_id: int,
-    token: str = None,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
     """Get analysis details"""
@@ -158,7 +147,7 @@ def get_analysis(
 def generate_interview_questions(
     analysis_id: int,
     question_type: str = "hr",
-    token: str = None,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
     """Generate interview questions for an analysis"""
@@ -216,7 +205,7 @@ def generate_interview_questions(
 @router.get("/questions/{analysis_id}", response_model=list[InterviewQuestionResponse])
 def get_interview_questions(
     analysis_id: int,
-    token: str = None,
+    token: str = Query(None),
     db: Session = Depends(get_db)
 ):
     """Get interview questions for an analysis"""

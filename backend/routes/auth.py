@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from datetime import timedelta
 from database import get_db
@@ -6,41 +6,11 @@ from schemas import UserCreate, UserLogin, UserResponse, TokenResponse
 from models import User
 from utils.auth import hash_password, verify_password, create_access_token
 from config import get_settings
-
+from fastapi.security import OAuth2PasswordBearer
 settings = get_settings()
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-
-@router.post("/signup", response_model=UserResponse)
-def signup(user_data: UserCreate, db: Session = Depends(get_db)):
-    """Register a new user"""
-    
-    # Check if user exists
-    existing_user = db.query(User).filter(
-        (User.email == user_data.email) | (User.username == user_data.username)
-    ).first()
-    
-    if existing_user:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Email or username already registered"
-        )
-    
-    # Create new user
-    hashed_password = hash_password(user_data.password)
-    db_user = User(
-        username=user_data.username,
-        email=user_data.email,
-        hashed_password=hashed_password,
-        full_name=user_data.full_name
-    )
-    
-    db.add(db_user)
-    db.commit()
-    db.refresh(db_user)
-    
-    return db_user
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 @router.post("/login", response_model=TokenResponse)
 def login(credentials: UserLogin, db: Session = Depends(get_db)):
@@ -86,3 +56,38 @@ def get_current_user(token: str, db: Session = Depends(get_db)):
         )
     
     return user
+
+@router.post("/signup", response_model=UserResponse)
+def signup(user_data: UserCreate, db: Session = Depends(get_db)):
+    """Register a new user"""
+
+    print("[DEBUG] Signup called")
+
+    # Check if user exists
+    existing_user = db.query(User).filter(
+        (User.email == user_data.email) | (User.username == user_data.username)
+    ).first()
+
+    if existing_user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email or username already registered"
+        )
+
+    # Create new user
+    hashed_password = hash_password(user_data.password)
+
+    db_user = User(
+        username=user_data.username,
+        email=user_data.email,
+        hashed_password=hashed_password,
+        full_name=user_data.full_name
+    )
+
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+
+    print("[DEBUG] User created:", db_user.email)
+
+    return db_user

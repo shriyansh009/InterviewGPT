@@ -4,6 +4,7 @@ from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from config import get_settings
+import hashlib
 
 settings = get_settings()
 
@@ -12,13 +13,13 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def hash_password(password: str) -> str:
-    """Hash password using bcrypt"""
-    return pwd_context.hash(password)
+    hashed = hashlib.sha256(password.encode("utf-8")).hexdigest()
+    return pwd_context.hash(hashed)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """Verify plain password against hashed password"""
-    return pwd_context.verify(plain_password, hashed_password)
+    hashed = hashlib.sha256(plain_password.encode("utf-8")).hexdigest()
+    return pwd_context.verify(hashed, hashed_password)
 
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
@@ -39,12 +40,15 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     return encoded_jwt
 
 
-def decode_token(token: str) -> dict:
+def decode_token(token: Optional[str]) -> Optional[dict]:
     """Decode JWT access token"""
+    if not token:
+        return None
+    
     try:
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM]
         )
         return payload
-    except JWTError:
+    except (JWTError, TypeError):
         return None
