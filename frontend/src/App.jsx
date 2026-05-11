@@ -1,51 +1,46 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import Home from './pages/Home';
-import SignUp from './pages/SignUp';
-import Login from './pages/Login';
-import Dashboard from './pages/Dashboard';
-import Analysis from './pages/Analysis';
-import Chat from './pages/Chat';
-import './index.css';
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Navbar } from "@/widgets/layout";
+import { AuthProvider } from "@/context/AuthContext";
+import ProtectedRoute from "@/components/ProtectedRoute";
+import routes from "@/routes";
 
-function PrivateRoute({ children }) {
-  const token = localStorage.getItem('access_token');
-  return token ? children : <Navigate to="/login" />;
+
+function AppContent() {
+  const { pathname } = useLocation();
+
+  return (
+    <>
+      {!(pathname == '/sign-in' || pathname == '/sign-up') && (
+        <div className="container absolute left-2/4 z-10 mx-auto -translate-x-2/4 p-4">
+          <Navbar routes={routes} />
+        </div>
+      )
+      }
+      <Routes>
+        {routes.map(
+          ({ path, element, protected: isProtected }, key) => {
+            const routeElement = element ? (
+              isProtected ? (
+                <ProtectedRoute>{element}</ProtectedRoute>
+              ) : (
+                element
+              )
+            ) : null;
+
+            return routeElement && <Route key={key} exact path={path} element={routeElement} />;
+          }
+        )}
+        <Route path="*" element={<Navigate to="/home" replace />} />
+      </Routes>
+    </>
+  );
 }
 
 function App() {
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/signup" element={<SignUp />} />
-        <Route path="/login" element={<Login />} />
-        <Route
-          path="/dashboard"
-          element={
-            <PrivateRoute>
-              <Dashboard />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/analysis/:analysisId"
-          element={
-            <PrivateRoute>
-              <Analysis />
-            </PrivateRoute>
-          }
-        />
-        <Route
-          path="/chat/:analysisId"
-          element={
-            <PrivateRoute>
-              <Chat />
-            </PrivateRoute>
-          }
-        />
-      </Routes>
-    </Router>
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 

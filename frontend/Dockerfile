@@ -1,14 +1,36 @@
+# Build stage
+FROM node:18-alpine as builder
+
+WORKDIR /app
+
+# Copy package files
+COPY package.json package-lock.json* yarn.lock* ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Build the application
+RUN npm run build
+
+# Production stage
 FROM node:18-alpine
 
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-RUN npm install
+# Install serve to run the app
+RUN npm install -g serve
 
-COPY . .
+# Copy built application from builder
+COPY --from=builder /app/dist ./dist
 
-ENV REACT_APP_API_URL=http://localhost:8000
+# Copy package.json for scripts
+COPY package.json ./
 
+# Expose port
 EXPOSE 3000
 
-CMD ["npm", "start"]
+# Start the application
+CMD ["serve", "-s", "dist", "-l", "3000"]
