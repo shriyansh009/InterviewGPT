@@ -5,9 +5,10 @@ from typing import List, Dict
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import PromptTemplate
 from config import get_settings
-
 settings = get_settings()
 
+def normalize_text(text: str) -> str:
+    return text.strip().lower()
 
 class RAGService:
     """Service for Retrieval-Augmented Generation"""
@@ -131,21 +132,37 @@ class RAGService:
         print("\n[DEBUG] ===== CONTEXTUAL ANSWER FUNCTION START =====")
 
         context = "\n".join(context_texts)
+        is_direct_answer = (
+            len(context_texts) == 1 and
+            normalize_text(context_texts[0]) == normalize_text(user_question)
+        )
 
-        prompt = PromptTemplate.from_template("""
-        Answer using ONLY the provided context.
+        if is_direct_answer:
+            prompt = PromptTemplate.from_template("""
+            You are a helpful assistant. Answer the user's question clearly and completely.
 
-        Context:
-        {context}
+            Question:
+            {question}
+            """)
+        else:
+            prompt = PromptTemplate.from_template("""
+            Answer using ONLY the provided context.
 
-        Question:
-        {question}
-        """)
+            Context:
+            {context}
+
+            Question:
+            {question}
+            """)
 
         chain = prompt | self.llm
 
         try:
-            response = chain.invoke({"context": context, "question": user_question})
+            response = (
+                chain.invoke({"question": user_question})
+                if is_direct_answer
+                else chain.invoke({"context": context, "question": user_question})
+            )
         except Exception as e:
             print("[ERROR] LLM Call Failed:", str(e))
             raise
