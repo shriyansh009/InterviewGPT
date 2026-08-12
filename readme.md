@@ -4,6 +4,10 @@ InterviewGPT is a full-stack AI-powered platform designed to help job seekers op
 
 ---
 
+## ⚙️ Working
+
+![working image](images/explaination.png)
+
 ## 🌟 Features
 
 ### 📄 Resume Analyzer
