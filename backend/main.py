@@ -4,7 +4,7 @@ from fastapi.staticfiles import StaticFiles
 import os
 
 from database import init_db
-from routes import auth, analysis, chat
+from routes import auth, analysis, chat, dashboard
 
 # Initialize database
 init_db()
@@ -29,6 +29,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(analysis.router)
 app.include_router(chat.router)
+app.include_router(dashboard.router)
 
 
 @app.get("/")

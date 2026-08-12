@@ -51,6 +51,7 @@ class AnalysisResponse(BaseModel):
     id: int
     ats_score: Optional[float]
     missing_skills: Optional[str]
+    matching_skills: Optional[str]
     suggestions: Optional[str]
     created_at: datetime
 
@@ -74,12 +75,14 @@ class InterviewQuestionResponse(BaseModel):
 class ChatMessage(BaseModel):
     role: str
     message: str
+    analysis_id: Optional[int] = None
 
 
 class ChatHistoryResponse(BaseModel):
     id: int
     role: str
     message: str
+    analysis_id: Optional[int] = None
     created_at: datetime
 
     class Config:

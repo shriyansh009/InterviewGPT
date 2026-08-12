@@ -1,35 +1,27 @@
-import { Routes, Route, Navigate, useLocation } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import { Navbar } from "@/widgets/layout";
-import { AuthProvider } from "@/context/AuthContext";
+import { AuthProvider, useAuth } from "@/context/AuthContext";
 import ProtectedRoute from "@/components/ProtectedRoute";
 import routes from "@/routes";
 
-
 function AppContent() {
-  const { pathname } = useLocation();
+  const { user } = useAuth();
 
   return (
     <>
-      {!(pathname == '/sign-in' || pathname == '/sign-up') && (
+      {!user && (
         <div className="container absolute left-2/4 z-10 mx-auto -translate-x-2/4 p-4">
           <Navbar routes={routes} />
         </div>
-      )
-      }
+      )}
       <Routes>
-        {routes.map(
-          ({ path, element, protected: isProtected }, key) => {
-            const routeElement = element ? (
-              isProtected ? (
-                <ProtectedRoute>{element}</ProtectedRoute>
-              ) : (
-                element
-              )
-            ) : null;
+        {routes.map(({ path, element, protected: isProtected }, key) => {
+          const routeElement = element ? (
+            isProtected ? <ProtectedRoute>{element}</ProtectedRoute> : element
+          ) : null;
 
-            return routeElement && <Route key={key} exact path={path} element={routeElement} />;
-          }
-        )}
+          return routeElement && <Route key={key} exact path={path} element={routeElement} />;
+        })}
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
     </>

@@ -40,21 +40,30 @@ class EmbeddingService:
     
     def create_index(self, texts: List[str], metadata: List[dict] = None):
         """Create FAISS index from texts"""
+        self.index = None
+        self.metadata = []
+        self.add_texts(texts, metadata)
+
+    def add_texts(self, texts: List[str], metadata: List[dict] = None):
+        """Add texts and metadata to the FAISS index"""
+        if not texts:
+            return
+
         embeddings = self.generate_embeddings(texts)
-        
-        # Initialize FAISS index
-        dimension = embeddings.shape[1]
-        self.index = faiss.IndexFlatL2(dimension)
+
+        if self.index is None:
+            dimension = embeddings.shape[1]
+            self.index = faiss.IndexFlatL2(dimension)
         self.index.add(embeddings.astype(np.float32))
-        
-        # Store metadata
+
         if metadata is None:
-            self.metadata = [{"text": text} for text in texts]
+            new_meta = [{"text": text} for text in texts]
         else:
-            self.metadata = metadata
-        
+            new_meta = metadata
+
+        self.metadata.extend(new_meta)
         self.save_index()
-    
+
     def search(self, query: str, k: int = 5) -> List[Tuple[str, float]]:
         """Search for similar documents"""
         if self.index is None:

@@ -101,7 +101,7 @@ export function Home() {
                     Get started free
                   </Button>
                 </a>
-                <a href="/login">
+                <a href="/sign-in">
                   <Button size="lg" variant="outlined" color="white">
                     Log in
                   </Button>

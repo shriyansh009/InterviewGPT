@@ -128,41 +128,69 @@ class RAGService:
             print("[ERROR] JSON Parsing Failed:", str(e))
             return []
 
-    def generate_contextual_answer(self, user_question: str, context_texts: List[str]) -> str:
+    def generate_contextual_answer(self, user_question: str, context_texts: List[str], system_prompt: str = None) -> str:
         print("\n[DEBUG] ===== CONTEXTUAL ANSWER FUNCTION START =====")
 
-        context = "\n".join(context_texts)
+        # Build explicit context from passed-in texts
+        context = "\n".join(context_texts or [])
+
+        # Retrieve relevant passages from vector DB using the embedding service
+        retrieved = []
+        try:
+            retrieved = self.embedding_service.search(user_question, k=5)
+        except Exception as e:
+            print("[WARN] Embedding search failed:", e)
+
+        retrieved_text = "\n\n".join([f"Source {i+1}:\n{t}" for i, (t, _d) in enumerate(retrieved)]) if retrieved else ""
+
         is_direct_answer = (
-            len(context_texts) == 1 and
+            len(context_texts or []) == 1 and
             normalize_text(context_texts[0]) == normalize_text(user_question)
         )
 
         if is_direct_answer:
-            prompt = PromptTemplate.from_template("""
+            base = """
             You are a helpful assistant. Answer the user's question clearly and completely.
 
             Question:
             {question}
-            """)
+            """
         else:
-            prompt = PromptTemplate.from_template("""
-            Answer using ONLY the provided context.
+            # Prefer retrieved text first, then explicit context
+            base = """
+            Use the retrieved context and the provided context to answer the question. If the retrieved context contains the answer, prefer it and cite which Source number it came from.
 
-            Context:
+            Retrieved Context:
+            {retrieved}
+
+            Additional Context:
             {context}
 
             Question:
             {question}
-            """)
+            """
+
+        # Prepend optional system-level prompt if provided
+        if system_prompt:
+            prompt_text = system_prompt.strip() + "\n\n" + base
+        else:
+            prompt_text = base
+
+        prompt = PromptTemplate.from_template(prompt_text)
 
         chain = prompt | self.llm
 
         try:
-            response = (
-                chain.invoke({"question": user_question})
-                if is_direct_answer
-                else chain.invoke({"context": context, "question": user_question})
-            )
+            if is_direct_answer:
+                response = chain.invoke({"question": user_question, "system_prompt": system_prompt})
+            else:
+                # Provide retrieved text + explicit context
+                response = chain.invoke({
+                    "retrieved": retrieved_text,
+                    "context": context,
+                    "question": user_question,
+                    "system_prompt": system_prompt,
+                })
         except Exception as e:
             print("[ERROR] LLM Call Failed:", str(e))
             raise

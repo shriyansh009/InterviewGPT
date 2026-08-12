@@ -81,6 +81,11 @@ async def upload_resume(
     db.add(db_resume)
     db.commit()
     db.refresh(db_resume)
+
+    # Index resume text for RAG retrieval
+    chunks = embedding_service.split_text(raw_text)
+    metadata = [{"text": chunk, "resume_id": db_resume.id, "filename": file.filename} for chunk in chunks]
+    embedding_service.add_texts(chunks, metadata)
     
     return db_resume
 
@@ -119,7 +124,7 @@ def analyze_resume(
 
     return db_analysis
 
-@router.get("/analysis/{analysis_id}", response_model=AnalysisResponse)
+@router.get("/{analysis_id}", response_model=AnalysisResponse)
 def get_analysis(
     analysis_id: int,
     token: str = Query(None),
@@ -141,6 +146,43 @@ def get_analysis(
         )
     
     return analysis
+
+
+@router.get("/resumes", response_model=list[ResumeResponse])
+def list_resumes(
+    token: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """List resumes for the current user"""
+    user = get_current_user(token, db)
+
+    resumes = db.query(Resume).filter(Resume.user_id == user.id).order_by(Resume.created_at.desc()).all()
+    return resumes
+
+
+@router.delete("/resume/{resume_id}")
+def delete_resume(
+    resume_id: int,
+    token: str = Query(None),
+    db: Session = Depends(get_db)
+):
+    """Delete a resume belonging to the current user"""
+    user = get_current_user(token, db)
+
+    resume = db.query(Resume).filter(Resume.id == resume_id, Resume.user_id == user.id).first()
+    if not resume:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Resume not found")
+
+    # Attempt to delete file from disk if present
+    try:
+        delete_file(resume.file_path)
+    except Exception:
+        pass
+
+    db.delete(resume)
+    db.commit()
+
+    return {"detail": "Resume deleted"}
 
 
 @router.post("/generate-questions/{analysis_id}")

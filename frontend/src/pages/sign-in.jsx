@@ -17,6 +17,7 @@ export function SignIn() {
     email: "",
     password: "",
     rememberMe: false,
+    termsAccepted: false,
   });
   const [submitError, setSubmitError] = useState("");
   const [validationError, setValidationError] = useState("");

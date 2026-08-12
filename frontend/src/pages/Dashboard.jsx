@@ -82,7 +82,7 @@ export function Dashboard() {
   const loadResumes = async () => {
     try {
       const token = localStorage.getItem("auth_token");
-      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/analysis/resumes?token=${token}`);
+      const response = await fetch(`${import.meta.env.VITE_API_URL || "http://localhost:8000"}/dashboard/resumes?token=${token}`);
       if (response.ok) {
         const data = await response.json();
         setResumes(data);
@@ -136,7 +136,7 @@ export function Dashboard() {
       const token = localStorage.getItem("auth_token");
       
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/analysis/upload-resume?token=${token}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/dashboard/upload-resume?token=${token}`,
         { method: "POST", body: formData }
       );
 
@@ -163,7 +163,7 @@ export function Dashboard() {
     try {
       const token = localStorage.getItem("auth_token");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/analysis/resume/${id}?token=${token}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/dashboard/resume/${id}?token=${token}`,
         { method: "DELETE" }
       );
 
@@ -193,7 +193,7 @@ export function Dashboard() {
     try {
       const token = localStorage.getItem("auth_token");
       const response = await fetch(
-        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/analysis/analyze?token=${token}`,
+        `${import.meta.env.VITE_API_URL || "http://localhost:8000"}/dashboard/analyze?token=${token}`,
         {
           method: "POST",
           headers: { "Content-Type": "application/json" },
